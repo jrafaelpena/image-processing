@@ -1,18 +1,19 @@
 import itk
 import numpy as np
 from pathlib import Path
-from typing import Union
+from typing import Union, Tuple
 import os
 from scipy import signal
+import time 
 
 def adaptive_wiener_filter_3d(
     input_file: Union[str, Path],
     output_file: Union[str, Path],
     radius: int
-) -> None:
+) -> Tuple[int, int, int]:
     # Leer imagen 3D con ITK
     pixel_type = itk.ctype("float")
-    image_type = itk.Image[pixel_type, 3]  # Changed dimension to 3
+    image_type = itk.Image[pixel_type, 3]
     reader = itk.ImageFileReader[image_type].New()
     reader.SetFileName(str(input_file))
     reader.Update()
@@ -52,7 +53,7 @@ def wiener3d(img, radius):
     # Cálculo de la varianza local:
     # Primero se obtiene el promedio de los valores al cuadrado
     local_squared_mean = signal.fftconvolve(img**2, kernel, mode='same')
-    # Luego se aplica la fórmula: Var(X) = E[X²] - (E[X])²
+    # Luego se aplica la formula: Var(X) = E[X^2] - (E[X])^2
     local_var = local_squared_mean - local_mean**2
     
     # Se asegura que la varianza no sea negativa (por errores de precisión numérica)
@@ -61,8 +62,7 @@ def wiener3d(img, radius):
     # Estimación de la varianza del ruido como el promedio de todas las varianzas locales
     noise_var = np.mean(local_var)
     
-    # Cálculo del factor adaptativo de Wiener: max(0, (σ²ₗ - σ²ₙ)/σ²ₗ)
-    # Donde σ²ₗ es la varianza local y σ²ₙ es la varianza del ruido
+    # Cálculo del factor adaptativo de Wiener
     factor = np.divide(
         (local_var - noise_var),
         np.maximum(local_var, 1e-10),  # Evita división por cero con un valor mínimo
@@ -89,4 +89,11 @@ if __name__ == "__main__":
     input_image = BASE_PATH / f"inputs/{image_name}.{extension}"
     output_image = BASE_PATH / f"outputs/{image_name}_AWF.{extension}"
 
+    # Iniciar temporizador
+    start_time = time.time()
+
     size = adaptive_wiener_filter_3d(input_image, output_image, 1)
+
+    # Calcular tiempo total tomado
+    total_time = time.time() - start_time
+    print(f"Tiempo total tomado: {total_time:.2f} segundos")

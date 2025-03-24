@@ -3,6 +3,7 @@ import numpy as np
 from pathlib import Path
 from typing import Union
 import os
+import time
 
 def adaptive_median_filter_3d(
     input_file: Union[str, Path],
@@ -38,7 +39,7 @@ def adaptive_median_filter_3d(
             
     return tuple(itk.size(itk_image)), input_image, output_image
 
-def process_voxel(image: np.ndarray, z: int, y: int, x: int, max_radius: int) -> int:
+def process_voxel(image: np.ndarray, z: int, y: int, x: int, max_radius: int) -> float:
     radius = 1
     while radius <= max_radius:
         window = get_window_3d(image, z, y, x, radius)
@@ -87,4 +88,11 @@ if __name__ == "__main__":
     input_image = BASE_PATH / f"inputs/{image_name}.{extension}"
     output_image = BASE_PATH / f"outputs/{image_name}_AMF.{extension}"
 
+    # Iniciar temporizador
+    start_time = time.time()
+    
     size = adaptive_median_filter_3d(input_image, output_image, 4)
+    
+    # Calcular tiempo total tomado
+    total_time = time.time() - start_time
+    print(f"Tiempo total tomado: {total_time:.2f} segundos")

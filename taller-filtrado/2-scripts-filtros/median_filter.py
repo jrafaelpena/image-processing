@@ -2,6 +2,7 @@ from pathlib import Path
 from typing import Union
 import itk
 import os
+import time
 
 def median_image_filter(
     input_file: Union[str, Path],
@@ -44,5 +45,11 @@ if __name__ == "__main__":
     extension = "nii.gz"
     input_image = BASE_PATH / f"inputs/{image_name}.{extension}"
     output_image = BASE_PATH / f"outputs/{image_name}_MF.{extension}"
-
+    # Iniciar temporizador
+    start_time = time.time()
+    
     size = median_image_filter(input_image, output_image, 1)
+
+    # Calcular tiempo total tomado
+    total_time = time.time() - start_time
+    print(f"Tiempo total tomado: {total_time:.2f} segundos")
