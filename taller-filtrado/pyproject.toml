@@ -9,4 +9,5 @@ dependencies = [
     "matplotlib>=3.10.1",
     "numpy>=2.2.3",
     "pillow>=11.1.0",
+    "scipy>=1.15.2",
 ]

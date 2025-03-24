@@ -4,7 +4,7 @@ from pathlib import Path
 from typing import Union
 import os
 
-def adaptive_median_filter_seq(
+def adaptive_median_filter_2d(
     input_file: Union[str, Path],
     output_file: Union[str, Path],
     max_radius: int
@@ -22,11 +22,11 @@ def adaptive_median_filter_seq(
 
     height, width = np_image.shape
     input_image = np.copy(np_image)
-    output_image = np.copy(np_image)
+    output_image = np.zeros(np_image.shape)
 
     for y in range(height):
         for x in range(width):
-            output_image[y, x] = process_pixel(output_image, y, x, max_radius)
+            output_image[y, x] = process_pixel(input_image, y, x, max_radius)
 
     itk_output = itk.GetImageFromArray(output_image.astype(np.uint8))
     itk_output.SetSpacing(itk_image.GetSpacing())
@@ -67,3 +67,14 @@ def get_median(image: np.ndarray):
     target_array = image.flatten()
     sorted_array = np.sort(target_array)
     return int(sorted_array[len(sorted_array) // 2])
+
+if __name__ == "__main__":
+    BASE_PATH = Path(os.getcwd())
+    image_name = "mona_lisa_externo"
+    extension = "png"
+    input_image = BASE_PATH / f"inputs/{image_name}.{extension}"
+    output_image = f"outputs/{image_name}_AMF.jpg"
+
+    size, input_array, output_array = adaptive_median_filter_2d(input_image, output_image, 4)
+
+    
