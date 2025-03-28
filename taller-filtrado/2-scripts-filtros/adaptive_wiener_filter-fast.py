@@ -38,39 +38,41 @@ def adaptive_wiener_filter_3d(
     return tuple(itk.size(itk_image))
 
 def wiener3d(img, radius):
+    
     # Se convierte la imagen a tipo float64 para asegurar precisión en los cálculos
     img = img.astype(np.float64)
     
-    local_mean = np.zeros_like(img)
-    local_var = np.zeros_like(img)
+    # Se calcula el tamaño de la ventana y se crea el kernel normalizado para la convolución
+    window_size = 2 * radius + 1
+    kernel = np.ones((window_size, window_size, window_size)) / (window_size**3)
     
-    # Obtener dimensiones
-    d, h, w = img.shape
-
-    # Recorrer voxel a voxel para calcular la media y varianza
-    for z in range(d):
-        for y in range(h):
-            for x in range(w):
-                window = get_window_3d(img, z, y, x, radius)
-
-                local_mean[z, y, x] = np.mean(window)
-                local_var[z, y, x] = np.var(window)
+    # Cálculo de la media local usando convolución 3D
+    # fftconvolve aplica padding con ceros por defecto en modo 'same' para mantener las dimensiones
+    local_mean = signal.fftconvolve(img, kernel, mode='same')
+    
+    # Cálculo de la varianza local:
+    # Primero se obtiene el promedio de los valores al cuadrado
+    local_squared_mean = signal.fftconvolve(img**2, kernel, mode='same')
+    # Luego se aplica la formula: Var(X) = E[X^2] - (E[X])^2
+    local_var = local_squared_mean - local_mean**2
     
     # Se asegura que la varianza no sea negativa (por errores de precisión numérica)
     local_var = np.maximum(local_var, 0)
-
+    
     # Estimación de la varianza del ruido como el promedio de todas las varianzas locales
     noise_var = np.mean(local_var)
-
+    
     # Cálculo del factor adaptativo de Wiener
     factor = np.divide(
         (local_var - noise_var),
-        np.maximum(local_var, 1e-10) # Evita división por cero con un valor mínimo
+        np.maximum(local_var, 1e-10),  # Evita división por cero con un valor mínimo
+        out=np.zeros_like(local_var),
+        where=local_var > 0
     )
-
+    
     # Limita el factor entre 0 y 1 para asegurar un comportamiento estable
     factor = np.clip(factor, 0, 1)
-
+    
     # Aplicación del filtro mediante la fórmula:
     # resultado = media_local + factor * (valor_original - media_local)
     # Cuando factor=0 (zona homogénea), el resultado es la media local
@@ -78,14 +80,6 @@ def wiener3d(img, radius):
     result = local_mean + factor * (img - local_mean)
     
     return result
-
-def get_window_3d(image: np.ndarray, z: int, y: int, x: int, radius: int) -> np.ndarray:
-
-    z_min, z_max = max(0, z - radius), min(image.shape[0], z + radius + 1)
-    y_min, y_max = max(0, y - radius), min(image.shape[1], y + radius + 1)
-    x_min, x_max = max(0, x - radius), min(image.shape[2], x + radius + 1)
-    
-    return image[z_min:z_max, y_min:y_max, x_min:x_max]
 
 if __name__ == "__main__":
     BASE_PATH = Path(os.getcwd()).parent
